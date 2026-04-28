@@ -378,7 +378,13 @@ if (!function_exists('addonBootstrapFiles')) {
 if (!function_exists('hasAddonBootstrapFiles')) {
     function hasAddonBootstrapFiles($code)
     {
-        foreach (addonBootstrapFiles($code) as $file) {
+        $bootstrapFiles = addonBootstrapFiles($code);
+
+        if ($bootstrapFiles === []) {
+            return false;
+        }
+
+        foreach ($bootstrapFiles as $file) {
             if (!file_exists(base_path($file))) {
                 return false;
             }
