@@ -96,37 +96,23 @@
                     @endif
                 </div>
                 @if (env('LOGIN_HELP') == 'active')
+                    @php
+                        $loginHelpCredentials = isCentralDomain() && isAddonInstalled('ALUSAAS')
+                            ? [
+                                ['label' => 'Super Admin', 'email' => 'superadmin@gmail.com', 'password' => '123456'],
+                                ['label' => 'Admin', 'email' => 'admin@gmail.com', 'password' => '123456'],
+                            ]
+                            : [
+                                ['label' => 'Admin', 'email' => 'admin@gmail.com', 'password' => '123456'],
+                                ['label' => 'Alumni', 'email' => 'alumni@gmail.com', 'password' => '123456'],
+                            ];
+                    @endphp
                     <div class="row">
                         <div class="col-md-12 mb-25">
-                            <div class="table-responsive login-info-table mt-3">
-                                <table class="table table-bordered">
-                                    <tbody>
-                                        @if(isCentralDomain() && isAddonInstalled('ALUSAAS'))
-                                        <tr>
-                                            <td colspan="2" id="superAdminCredentialShow" class="login-info">
-                                                <b>Super Admin :</b> superadmin@gmail.com | 123456
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="2" id="adminCredentialShow" class="login-info">
-                                                <b>Admin :</b> admin@gmail.com | 123456
-                                            </td>
-                                        </tr>
-                                        @else
-                                        <tr>
-                                            <td colspan="2" id="adminCredentialShow" class="login-info">
-                                                <b>Admin :</b> admin@gmail.com | 123456
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="2" id="userCredentialShow" class="login-info">
-                                                <b>Alumni :</b> alumni@gmail.com | 123456
-                                            </td>
-                                        </tr>
-                                        @endif
-                                    </tbody>
-                                </table>
-                            </div>
+                            <div
+                                data-ui-island="login-credential-menu"
+                                data-credentials='@json($loginHelpCredentials)'
+                            ></div>
                         </div>
                     </div>
                 @endif
@@ -134,21 +120,3 @@
         </div>
     </div>
 @endsection
-
-@push('script')
-    <script>
-        "use strict"
-        $('#adminCredentialShow').on('click', function() {
-            $('#EmailAddress').val('admin@gmail.com');
-            $('#Password').val('123456');
-        });
-        $('#superAdminCredentialShow').on('click', function() {
-            $('#EmailAddress').val('superadmin@gmail.com');
-            $('#Password').val('123456');
-        });
-        $('#userCredentialShow').on('click', function() {
-            $('#EmailAddress').val('alumni@gmail.com');
-            $('#Password').val('123456');
-        });
-    </script>
-@endpush

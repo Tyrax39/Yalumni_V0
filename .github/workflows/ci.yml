@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - devLocalBuid
+
+jobs:
+  laravel:
+    name: Laravel and frontend checks
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:QzNWn91r4SHP+zAkYqCJ3KTGVAHqTLLpOJA0yJqFMBY=
+      BCRYPT_ROUNDS: 4
+      CACHE_DRIVER: array
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, json, mbstring, mysqli, openssl, pdo, pdo_mysql, tokenizer, xml, zip
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate Composer manifest
+        run: composer validate --no-check-publish
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run production
+
+      - name: List routes
+        run: php artisan route:list
+
+      - name: Run tests
+        run: php artisan test
+
+      - name: Composer audit report
+        continue-on-error: true
+        run: composer audit
+
+      - name: npm audit high severity gate
+        run: npm audit --audit-level=high

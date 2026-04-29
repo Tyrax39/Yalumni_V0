@@ -23,6 +23,7 @@
 <script src="{{ asset('super_admin/js/lc_select.min.js') }}"></script>
 <script src="{{ asset('super_admin/js/main.js') }}?ver={{ env('VERSION', 0) }}"></script>
 <script src="{{ asset('common/js/common.js') }}?ver={{ env('VERSION', 0) }}"></script>
+<script src="{{ asset('js/ui-islands.js') }}?ver={{ env('VERSION', 0) }}" defer></script>
 
 @stack('script')
 <script>

@@ -8,17 +8,15 @@ The current branch is `devLocalBuid`, tracking `origin/devLocalBuid`. The branch
 
 The app currently boots successfully:
 
-- `php artisan route:list` succeeds and reports 360 routes.
+- `php artisan route:list` succeeds and reports 361 routes in the current local dependency state.
 - `php artisan test` succeeds with 8 passing tests.
 - `composer validate --no-check-publish` succeeds with one warning.
 
-The largest open risks are dependency/security hygiene and reproducibility:
+The largest open risks are now dependency/security hygiene and deeper workflow coverage:
 
-- `composer.lock` is missing.
-- `package-lock.json` is missing.
-- `composer audit` reports security advisories in installed PHP dependencies.
-- `npm audit` cannot run because there is no npm lockfile.
-- JavaScript dependencies are old and the build cannot be reproduced from a committed lockfile.
+- `composer audit` reports a Laravel framework advisory that requires a larger framework upgrade path.
+- `npm audit` reports low/moderate findings in the legacy Laravel Mix/Webpack development toolchain.
+- JavaScript and PHP dependency resolution are now reproducible through committed lockfiles.
 
 ## Current Project Shape
 
@@ -40,7 +38,7 @@ The largest open risks are dependency/security hygiene and reproducibility:
 - 95 database migrations.
 - 251 Blade templates.
 - 878 files under `public`.
-- 360 registered Laravel routes in the current local boot mode.
+- 361 registered Laravel routes in the current local boot mode.
 
 ### Route Areas
 
@@ -80,19 +78,19 @@ The largest open risks are dependency/security hygiene and reproducibility:
 
 ### Reproducibility
 
-- Missing `composer.lock` means PHP dependency resolution is not reproducible.
-- Missing `package-lock.json` means JavaScript dependency resolution is not reproducible and `npm audit` cannot run.
+- `composer.lock` has been generated so PHP dependency resolution is reproducible.
+- `package-lock.json` has been generated so JavaScript dependency resolution is reproducible and npm audit can run.
 - `vendor/` and `node_modules/` are intentionally ignored, so lockfiles are the correct source of reproducibility.
-- No CI workflow is present yet to enforce install, route registration, tests, and dependency audits.
+- A GitHub Actions CI workflow now installs PHP and Node dependencies, builds frontend assets, lists routes, runs tests, and records audit status.
 
 ### Dependency And Security Hygiene
 
-- `composer audit` reports advisories in installed dependencies, including high severity issues.
+- `composer audit` reports one Laravel framework advisory in the current lockfile.
 - Laravel is installed at `v9.52.16`; Composer reports `v12.58.0` as latest and `v9.52.17` or later is needed for at least one Laravel 9 security advisory.
 - `php-http/message-factory` is abandoned and should be replaced through upstream dependency updates where possible.
 - Several payment SDKs are multiple major versions behind, which increases payment integration and security risk.
 - `composer validate` warns that `mollie/laravel-mollie` is pinned to exact version `2.19`; if semver-compatible, loosen or intentionally document that pin.
-- `npm audit` cannot run until a package lock exists.
+- `npm audit` now runs; high-severity npm findings were cleared by upgrading Axios.
 - `npm outdated --all` reports `laravel-datatables-vite` wanted `0.5.3`, latest `0.6.2`.
 
 ### Test Coverage
@@ -105,10 +103,11 @@ The largest open risks are dependency/security hygiene and reproducibility:
 
 ### Frontend Build
 
-- `webpack.mix.js` only builds `resources/js/app.js` and `resources/sass/app.scss`.
+- `webpack.mix.js` builds the legacy app bundle, Sass bundle, and the new React UI island bundle.
 - Many production assets under `public/` appear prebuilt or vendor-style; it is unclear which are source assets and which are generated assets.
-- `node_modules` is absent and no lockfile exists, so frontend build verification requires dependency resolution first.
-- There is no documented frontend build pipeline beyond Laravel Mix scripts.
+- `package-lock.json` now allows `npm ci` and reproducible frontend builds.
+- Headless UI and Emotion are wired through a React island layer for incremental modernization inside Blade pages.
+- There is still no broader frontend test suite around the rendered UI.
 
 ### Operations
 
@@ -139,11 +138,16 @@ Prioritize a narrow Composer security update PR before broad major upgrades:
 
 ### Reproducibility Updates
 
-Create lockfiles in their own PRs:
+Completed in the follow-up implementation:
 
-- Generate and commit `composer.lock` from a known-good PHP environment.
-- Generate and commit `package-lock.json`.
-- After lockfiles exist, run `composer install`, `composer audit`, `npm ci`, `npm audit`, `npm run production`, `php artisan route:list`, and `php artisan test`.
+- Generated and committed `composer.lock` from a known-good PHP environment.
+- Generated and committed `package-lock.json`.
+- Added CI for Composer install, npm install, frontend build, route list, and tests.
+
+Remaining:
+
+- Keep `composer audit` informational until the Laravel upgrade path is ready.
+- Keep `npm audit --audit-level=high` as the current JS audit gate while Laravel Mix transitive low/moderate findings remain.
 
 ### Major Upgrade Candidates
 
@@ -165,9 +169,9 @@ These need separate planning and regression testing:
 
 ### Priority 1 - Stabilize Builds And Security
 
-- Add `composer.lock` and `package-lock.json`.
-- Add a GitHub Actions CI workflow for PHP install, route list, tests, Composer validate, Composer audit, npm install/build/audit.
-- Patch high-severity Composer audit findings with the smallest compatible update set.
+- Maintain `composer.lock` and `package-lock.json`.
+- Use the GitHub Actions CI workflow for PHP install, route list, tests, Composer validate, npm install/build, and audit reporting.
+- Plan the Laravel upgrade required to clear the remaining Composer audit finding.
 - Document local setup, required PHP extensions, database creation, migration/seed/import steps, and test credentials.
 
 ### Priority 2 - Prove Core Workflows
@@ -200,14 +204,15 @@ These need separate planning and regression testing:
 
 Commands run on 2026-04-29:
 
-- `php artisan route:list` - passed, 360 routes.
+- `php artisan route:list` - passed, 361 routes.
 - `php artisan test` - passed, 8 tests.
 - `composer validate --no-check-publish` - passed with warning about exact `mollie/laravel-mollie` constraint.
 - `composer outdated --direct --format=json` - completed and reported multiple direct updates.
 - `composer audit --format=json` - failed because advisories are present.
 - `npm outdated --all --json` - completed and reported `laravel-datatables-vite` update availability.
-- `npm audit --json` - failed because `package-lock.json` is missing.
-- `npm run production` - failed because `mix` is unavailable without installed npm dependencies.
+- `npm audit --json` - now runs; remaining findings are low/moderate Laravel Mix/Webpack toolchain advisories.
+- `npm audit --audit-level=high` - passes after upgrading Axios.
+- `npm run production` - passes after installing Node dependencies and pinning compatible Webpack.
 
 ## Local Verification URLs
 

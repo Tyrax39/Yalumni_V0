@@ -4,6 +4,7 @@
 <script src="{{ asset('frontend/js/plugins.js') }}?ver={{ env('VERSION' ,0) }}"></script>
 <script src="{{ asset('frontend/js/main.js') }}?ver={{ env('VERSION' ,0) }}"></script>
 <script src="{{ asset('common/js/common.js') }}?ver={{ env('VERSION' ,0) }}"></script>
+<script src="{{ asset('js/ui-islands.js') }}?ver={{ env('VERSION', 0) }}" defer></script>
 
 @stack('script')
 
