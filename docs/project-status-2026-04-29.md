@@ -9,20 +9,20 @@ The current branch is `devLocalBuid`, tracking `origin/devLocalBuid`. The branch
 The app currently boots successfully:
 
 - `php artisan route:list` succeeds and reports 361 routes in the current local dependency state.
-- `php artisan test` succeeds with 8 passing tests.
+- `php artisan test` succeeds with 13 passing tests after the auth workflow contract coverage slice.
 - `composer validate --no-check-publish` succeeds with one warning.
 
 The largest open risks are now dependency/security hygiene and deeper workflow coverage:
 
-- `composer audit` reports a Laravel framework advisory that requires a larger framework upgrade path.
-- `npm audit` reports low/moderate findings in the legacy Laravel Mix/Webpack development toolchain.
+- `composer audit --locked` reports Laravel CVE-2025-27515 and two abandoned packages.
+- `npm audit --audit-level=high` now reports high-severity advisories in the existing Laravel Mix/Webpack/Babel toolchain.
 - JavaScript and PHP dependency resolution are now reproducible through committed lockfiles.
 
 ## Current Project Shape
 
 ### Stack
 
-- Backend: Laravel 9.52.16 on PHP 8.2.12.
+- Backend: Laravel 9.52.21 on PHP 8.2.12.
 - Frontend: Blade templates, Laravel Mix 6, Bootstrap 5, Sass.
 - Auth: Laravel UI auth, email verification helpers, social login controllers, Google 2FA support.
 - Tenancy: `stancl/tenancy`, with central-domain aware route registration.
@@ -66,6 +66,12 @@ The largest open risks are now dependency/security hygiene and deeper workflow c
 - Addon helper functions avoid `optimize:clear` side effects during read-only version checks.
 - Tests cover addon bootstrap mapping, central domain helper behavior, route registration without optional addons, and core auth/alumni route registration.
 
+### Auth Workflow Contract Coverage
+
+- Feature tests now protect login/register/password reset route contracts.
+- Feature tests now assert missing login credentials and missing password reset email validation fail before any authentication or user lookup.
+- Feature tests now assert alumni app, admin dashboard, and super-admin dashboard routes redirect guests to login when operational install/version gates are bypassed for focused auth-boundary coverage.
+
 ### Core Functional Surface
 
 - Public website pages exist for home, pages, alumni, events, news, notices, membership, jobs, stories, contact, and ticket verification.
@@ -85,18 +91,18 @@ The largest open risks are now dependency/security hygiene and deeper workflow c
 
 ### Dependency And Security Hygiene
 
-- `composer audit` reports one Laravel framework advisory in the current lockfile.
-- Laravel is installed at `v9.52.16`; Composer reports `v12.58.0` as latest and `v9.52.17` or later is needed for at least one Laravel 9 security advisory.
-- `php-http/message-factory` is abandoned and should be replaced through upstream dependency updates where possible.
+- `composer audit --locked` reports Laravel CVE-2025-27515 against the current Laravel `v9.52.21` lockfile; clearing it requires a separately planned Laravel major-version upgrade path.
+- `composer audit --locked` also reports abandoned `doctrine/annotations` and `php-http/message-factory`; `php-http/message-factory` should be replaced through upstream dependency updates where possible.
 - Several payment SDKs are multiple major versions behind, which increases payment integration and security risk.
 - `composer validate` warns that `mollie/laravel-mollie` is pinned to exact version `2.19`; if semver-compatible, loosen or intentionally document that pin.
-- `npm audit` now runs; high-severity npm findings were cleared by upgrading Axios.
+- `npm audit --audit-level=high` currently fails on high-severity advisories in existing build dependencies including Babel, `fast-uri`, Webpack, and transitive Laravel Mix packages.
 - `npm outdated --all` reports `laravel-datatables-vite` wanted `0.5.3`, latest `0.6.2`.
 
 ### Test Coverage
 
-- Current tests are useful smoke/route tests, but coverage is still thin for a project of this size.
-- No feature tests cover authentication flows, role permissions, admin CRUD, alumni CRUD, posts/comments/likes, chat, checkout, or payment callbacks.
+- Current tests are useful smoke/route/auth contract tests, but coverage is still thin for a project of this size.
+- Auth route contracts, missing login credentials, missing password reset email validation, and guest redirects for app/admin/super-admin boundaries now have feature coverage.
+- No feature tests cover successful database-backed authentication, successful registration, successful password reset, role permissions, admin CRUD, alumni CRUD, posts/comments/likes, chat, checkout, or payment callbacks.
 - No browser/end-to-end tests cover the frontend, admin, or alumni portal.
 - No migration test proves a clean database can install from scratch.
 - No seed/demo-data test proves a local environment can be populated consistently.
@@ -129,8 +135,8 @@ The largest open risks are now dependency/security hygiene and deeper workflow c
 
 Prioritize a narrow Composer security update PR before broad major upgrades:
 
-- Update Laravel 9 to at least a patched 9.52.x release or plan the Laravel 10/11/12 upgrade path.
-- Update `yansongda/pay` from `v3.7.9` to at least `v3.7.20`.
+- Laravel 9 is currently locked at `v9.52.21`; `composer audit --locked` reports CVE-2025-27515, so a Laravel 10.48.29+/11.44.1+/12.1.1+ upgrade path is required to clear the current advisory.
+- `yansongda/pay` is currently locked at `v3.7.20`.
 - Update transitive Symfony components through Laravel-compatible constraints.
 - Update `league/commonmark`, `nesbot/carbon`, `phpseclib/phpseclib`, `psy/psysh`, and `phpunit/phpunit` through compatible direct package updates.
 - Update AWS SDK through `league/flysystem-aws-s3-v3` compatible constraints.
@@ -146,8 +152,8 @@ Completed in the follow-up implementation:
 
 Remaining:
 
-- Keep `composer audit` informational until the Laravel upgrade path is ready.
-- Keep `npm audit --audit-level=high` as the current JS audit gate while Laravel Mix transitive low/moderate findings remain.
+- Keep `composer audit --locked` informational until the Laravel upgrade path is ready.
+- Plan a JavaScript build-toolchain dependency slice because `npm audit --audit-level=high` currently fails.
 
 ### Major Upgrade Candidates
 
@@ -176,7 +182,7 @@ These need separate planning and regression testing:
 
 ### Priority 2 - Prove Core Workflows
 
-- Add feature tests for login/register/password reset.
+- Broaden auth feature tests from route/validation contracts into database-backed login, registration, and password reset success paths.
 - Add admin route permission tests for admin and super-admin boundaries.
 - Add CRUD tests for alumni, events, jobs, news, notices, memberships, and website settings.
 - Add payment callback contract tests with gateway fixture payloads.
@@ -214,6 +220,16 @@ Commands run on 2026-04-29:
 - `npm audit --audit-level=high` - passes after upgrading Axios.
 - `npm run production` - passes after installing Node dependencies and pinning compatible Webpack.
 
+Commands run on 2026-05-15:
+
+- `php artisan test --filter=AuthWorkflowContractTest` - passed, 5 tests.
+- `php artisan test` - passed, 13 tests.
+- `php artisan route:list` - passed, 361 routes.
+- `composer validate --no-check-publish` - passed with warning about exact `mollie/laravel-mollie` constraint.
+- `composer audit --locked` - failed; reports Laravel CVE-2025-27515 and abandoned `doctrine/annotations` plus `php-http/message-factory`.
+- `npm audit --audit-level=high` - failed; reports high-severity advisories in existing build-toolchain dependencies.
+- `npm run production` - passed; Dart Sass emitted existing deprecation warnings from Bootstrap/Sass imports.
+
 ## Local Verification URLs
 
 When the Laravel development server is running on port 8000:
@@ -229,8 +245,8 @@ Admin, super-admin, and alumni routes require authentication and the configured 
 
 1. Project status and documentation report.
 2. Add lockfiles and CI.
-3. Patch Composer security advisories.
-4. Reproducible frontend build and npm audit cleanup.
-5. Core workflow feature tests.
+3. Patch Composer security advisories by planning the Laravel major-version upgrade required for CVE-2025-27515.
+4. Reproducible frontend build and npm audit cleanup for the current high-severity build-toolchain findings.
+5. Continue core workflow feature tests beyond the completed auth route/validation contract slice.
 6. Browser smoke tests for public, auth, admin, super-admin, and alumni routes.
 7. Payment gateway contract tests and operational runbooks.
